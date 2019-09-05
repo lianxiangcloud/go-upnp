@@ -2,6 +2,7 @@ package upnp
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -54,33 +55,23 @@ func TestIGD(t *testing.T) {
 	}
 	t.Log("Your external IP is:", ip)
 
+	// get portmap list
+	for i := 0; i < 4; i++ {
+		e, err := d.GetPortMappingEntry(uint16(i))
+		if err != nil {
+			//t.Skipf("GetPortMap %d fail: %s\n", i, err)
+			continue
+		}
+
+		fmt.Printf("entry-%d: %s\n", i, e)
+	}
+
 	// forward a port
-	err = d.Forward(9001, "upnp test")
+	err = d.Forward("TCP", 9001, "ipfs test")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// check that port 9001 is now forwarded
-	forwarded, err := d.IsForwardedTCP(9001)
-	if err != nil {
-		t.Fatal(err)
-	} else if !forwarded {
-		t.Fatal("port 9001 was not reported as forwarded")
-	}
-
-	// un-forward a port
-	err = d.Clear(9001)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// check that port 9001 is no longer forwarded
-	forwarded, err = d.IsForwardedTCP(9001)
-	if err != nil {
-		t.Fatal(err)
-	} else if forwarded {
-		t.Fatal("port 9001 should no longer be forwarded")
-	}
+	fmt.Println("Forward 9001")
 
 	// record router's location
 	loc := d.Location()
@@ -94,4 +85,25 @@ func TestIGD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	intIP, _ := d.getInternalIP()
+	extIP, _ := d.ExternalIP()
+	t.Logf("%s --> %s", intIP, extIP)
+
+	for i := 0; i < 4; i++ {
+		e, err := d.GetPortMappingEntry(uint16(i))
+		if err != nil {
+			//t.Skipf("GetPortMap %d fail: %s\n", i, err)
+			continue
+		}
+
+		fmt.Printf("entry-%d: %s\n", i, e)
+	}
+
+	time.Sleep(time.Second * 10)
+	// un-forward a port
+	err = d.Clear("TCP", 9001)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("clear 9001")
 }
